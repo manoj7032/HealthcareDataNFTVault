@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "openzeppelin-solidity": "^1.12.0"
+  }
+}
