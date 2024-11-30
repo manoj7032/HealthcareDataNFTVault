@@ -8,6 +8,7 @@ contract HealthcareDataNFT is ERC721BasicToken {
         string date;
         string provider;
         string ipfsHash;
+        string imageUrl; // New field for image URL
     }
 
     string public name;
@@ -40,7 +41,8 @@ contract HealthcareDataNFT is ERC721BasicToken {
         string dataType,
         string date,
         string provider,
-        string ipfsHash
+        string ipfsHash,
+        string imageUrl
     ) public {
         require(!_exists(tokenId), "Token ID already exists");
         _mint(msg.sender, tokenId);
@@ -49,7 +51,8 @@ contract HealthcareDataNFT is ERC721BasicToken {
             dataType: dataType,
             date: date,
             provider: provider,
-            ipfsHash: ipfsHash
+            ipfsHash: ipfsHash,
+            imageUrl: imageUrl
         });
 
         _totalSupply = _totalSupply + 1;
@@ -95,8 +98,8 @@ contract HealthcareDataNFT is ERC721BasicToken {
 }
 
 
-    function getMetadata(uint256 tokenId) public view returns (string, string, string, string) {
+    function getMetadata(uint256 tokenId) public view returns (string, string, string, string, string) {
         Metadata memory data = metadataStore[tokenId];
-        return (data.dataType, data.date, data.provider, data.ipfsHash);
+        return (data.dataType, data.date, data.provider, data.ipfsHash, data.imageUrl);
     }
 }

@@ -10,6 +10,7 @@ const App = () => {
   const [dataType, setDataType] = useState("");
   const [date, setDate] = useState("");
   const [provider, setProvider] = useState("");
+  const [image, setImage] = useState("");
   const [tokenId, setTokenId] = useState("");
   const [accessTokenId, setAccessTokenId] = useState("");
   const [userAddress, setUserAddress] = useState("");
@@ -19,7 +20,7 @@ const App = () => {
   const [status, setStatus] = useState("");
   const [mintedData, setMintedData] = useState([]);
 
-  const contractAddress = "0xc8a0268D53393D1B301A9860bEDc41f3746cd020"; // Replace with your deployed contract address
+  const contractAddress = "0x4B21AB3cf2Fa252107c19dd367Ba2a7B9d8584f9"; // Replace with your deployed contract address
 
   // Fetch Minted Data
   const fetchMintedData = async () => {
@@ -43,10 +44,53 @@ const App = () => {
     }
   };
 
+   // Handle Image Upload
+  //  const handleImageUpload = async (e) => {
+  //   const file = e.target.files[0];
+  //   if (!file) {
+  //     alert("Please select an image.");
+  //     return;
+  //   }
+
+  //   setStatus("Uploading image to IPFS...");
+  //   const formData = new FormData();
+  //   formData.append("file", file);
+
+  //   try {
+  //     const ipfsUrl = await uploadToIPFS(formData);
+  //     setImage(ipfsUrl);
+  //     setStatus("Image uploaded successfully!");
+  //   } catch (error) {
+  //     console.error("Error uploading image:", error.message);
+  //     setStatus("Failed to upload image.");
+  //   }
+  // };
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+      alert("Please select an image.");
+      return;
+    }
+  
+    setStatus("Uploading image to IPFS...");
+    const formData = new FormData();
+    formData.append("file", file); // Append the file to FormData
+  
+    try {
+      const ipfsUrl = await uploadToIPFS(formData); // Upload file to IPFS
+      setImage(ipfsUrl);
+      setStatus("Image uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading image:", error.message);
+      setStatus("Failed to upload image.");
+    }
+  };
+  
+
   // Mint NFT
   const handleMintNFT = async () => {
-    if (!tokenId || !data || !dataType || !date || !provider) {
-      alert("Please fill out all fields.");
+    if (!tokenId || !data || !dataType || !date || !provider || !image) {
+      alert("Please fill out all fields and upload an image.");
       return;
     }
 
@@ -67,7 +111,7 @@ const App = () => {
       const contract = new Contract(contractAddress, HealthcareDataNFT.abi, signer);
 
       console.log("Minting with Token ID:", tokenId);
-      const tx = await contract.mintNFT(tokenId, dataType, date, provider, ipfsUrl);
+      const tx = await contract.mintNFT(parseInt(tokenId), dataType, date, provider, ipfsUrl, image);
       await tx.wait();
 
       setStatus(`NFT minted successfully! IPFS URL: ${ipfsUrl}`);
@@ -168,7 +212,8 @@ const App = () => {
       const metadata = await contract.getMetadata(viewTokenId);
       console.log("Fetched Metadata:", metadata);
   
-      const ipfsHash = metadata[3]; // Extract IPFS hash
+      //const ipfsHash = metadata[3]; // Extract IPFS hash
+      const [dataType, date, provider, ipfsHash, imageUrl] = metadata;
       console.log("Fetching data from IPFS URL:", ipfsHash);
       const encryptedData = await fetchFromIPFS(ipfsHash); // Fetch encrypted data from IPFS
       console.log("Encrypted Data from IPFS:", encryptedData);
@@ -177,6 +222,8 @@ const App = () => {
       if (healthcareData) {
         alert(`Healthcare Data:\n${healthcareData}`);
         setStatus("Healthcare Data Retrieved Successfully!");
+        // Display image
+        document.getElementById("image-display").src = imageUrl;
       } else {
         setStatus("Failed to decrypt healthcare data.");
       }
@@ -293,6 +340,7 @@ const App = () => {
       <input type="date" onChange={(e) => setDate(e.target.value)} />
       <input type="text" placeholder="Provider (e.g., XYZ Hospital)" onChange={(e) => setProvider(e.target.value)} />
       <textarea placeholder="Enter healthcare data" onChange={(e) => setData(e.target.value)}></textarea>
+      <input type="file" accept="image/*" onChange={handleImageUpload} />
       <button className="primary-button" onClick={handleMintNFT}>Mint Healthcare NFT</button>
     </div>
   </section>
@@ -319,6 +367,7 @@ const App = () => {
       <input type="text" placeholder="User Private Key" onChange={(e) => setUserPrivateKey(e.target.value)} />
       <button className="primary-button" onClick={viewHealthcareDataWithAccess}>View Healthcare Data</button>
     </div>
+    <img id="image-display" alt="Healthcare Data" className="image-display" />
   </section>
 
   {/* Minted Data Section */}
