@@ -551,7 +551,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.16",
-  "updatedAt": "2024-11-30T20:23:46.249Z",
+  "updatedAt": "2024-12-01T05:34:18.364Z",
   "devdoc": {
     "methods": {
       "onERC721Received(address,address,uint256,bytes)": {
