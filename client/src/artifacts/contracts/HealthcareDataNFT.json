@@ -10501,13 +10501,12 @@
     "5777": {
       "events": {},
       "links": {},
-      "address": "0x01bc06D9a2407283fbb0886ac171c680AFC5B558",
-      "transactionHash": "0x1ec2f43b906add0296b826659b7b9c5ddf8739d10df2c8a33c96049370299d93"
+      "address": "0xf580122A923d336a32Cbb6d1a2Acf2916E9ef98A",
+      "transactionHash": "0x1c2794404d468ca7068ecaa7923cfd296559b0ba3e5b22f3c8d63fb7821d5f2e"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2024-11-30T19:52:10.318Z",
-  "networkType": "ethereum",
+  "updatedAt": "2024-12-05T07:57:35.587Z",
   "devdoc": {
     "methods": {
       "approve(address,uint256)": {

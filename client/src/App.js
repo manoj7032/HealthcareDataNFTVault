@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { BrowserProvider, Contract, getAddress } from 'ethers';
 import CryptoJS from 'crypto-js';
 import { uploadToIPFS } from './utils/pinata';
+import DataInsights from './DataInsights';
+import MedicalReferences from './MedicalReferences';
 import { useCallback } from 'react';
 import RecordsOverview from './RecordsOverview';
+import PatientDataEntry from './PatientDataEntry';
 import HealthcareDataNFT from './artifacts/contracts/HealthcareDataNFT.json';
 import {  
   AlertCircle, 
@@ -11,12 +14,20 @@ import {
   Eye 
 } from 'lucide-react';
 import './App.css';
+import cbcImage from './images/cbc.jpeg';
+import bmpImage from './images/bmp.jpeg';
+import chestXrayImage from './images/chest-xray.png';
+import brainMriImage from './images/brain-mri.jpeg';
+
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('patient');
   const [data, setData] = useState('');
   const [dataType, setDataType] = useState('');
   const [date, setDate] = useState('');
+  const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
   const [provider, setProvider] = useState('');
   const [image, setImage] = useState('');
   const [tokenId, setTokenId] = useState('');
@@ -40,23 +51,45 @@ const App = () => {
     byMonth: {}
   });
 
-  const contractAddress = '0xd414c3c046B5Faf91CD3eEE4EbC4c392e378163a';
+  const contractAddress = '0x3972872407F2BB22dCc996f66447d45a0b4D1062';
 
   const medicalReferences = {
-    bloodWork: [
-      { test: 'Complete Blood Count (CBC)', range: 'WBC: 4,500-11,000/µL\nRBC: 4.5-5.9 million/µL\nHemoglobin: 13.5-17.5 g/dL (male), 12.0-15.5 g/dL (female)' },
-      { test: 'Basic Metabolic Panel', range: 'Glucose: 70-99 mg/dL (fasting)\nCalcium: 8.5-10.5 mg/dL\nSodium: 135-145 mEq/L' },
-      { test: 'Lipid Panel', range: 'Total Cholesterol: < 200 mg/dL\nHDL: > 40 mg/dL\nLDL: < 100 mg/dL\nTriglycerides: < 150 mg/dL' }
+    BloodWork: [
+      {
+        test: 'Complete Blood Count (CBC)',
+        range: 'WBC: 4,500-11,000/µL\nRBC: 4.5-5.9 million/µL\nHemoglobin: 13.5-17.5 g/dL (male), 12.0-15.5 g/dL (female)',
+        explanation: 'CBC measures the levels of different blood cells, which can indicate infections, anemia, or other conditions.',
+        unit: 'µL / g/dL',
+        image: cbcImage, 
+      },
+      {
+        test: 'Basic Metabolic Panel',
+        range: 'Glucose: 70-99 mg/dL (fasting)\nCalcium: 8.5-10.5 mg/dL\nSodium: 135-145 mEq/L',
+        explanation: 'Measures essential chemicals in the blood to monitor organ function and overall health.',
+        unit: 'mg/dL / mEq/L',
+        image: bmpImage, 
+      },
     ],
     xray: [
-      { test: 'Chest X-ray', range: 'PA view: 35-40 cm width\nLateral view: 25-35 cm depth' },
-      { test: 'Bone X-ray', range: 'Cortical thickness: 3-8 mm\nTrabeculae spacing: 0.5-1.5 mm' }
+      {
+        test: 'Chest X-ray',
+        range: 'PA view: 35-40 cm width\nLateral view: 25-35 cm depth',
+        explanation: 'Used to diagnose conditions affecting the lungs, heart, and chest.',
+        image: chestXrayImage, 
+      },
     ],
     mri: [
-      { test: 'Brain MRI', range: 'T1 relaxation time: 240-1400 ms\nT2 relaxation time: 40-200 ms' },
-      { test: 'Spine MRI', range: 'Disc height: 8-12 mm\nSpinal canal diameter: 12-14 mm' }
-    ]
+      {
+        test: 'Brain MRI',
+        range: 'T1 relaxation time: 240-1400 ms\nT2 relaxation time: 40-200 ms',
+        explanation: 'MRI uses magnetic fields to create detailed images of the brain.',
+        unit: 'ms',
+        image: brainMriImage, 
+      },
+    ],
   };
+  
+  
 
   const privacyLaws = [
     {
@@ -118,23 +151,81 @@ const App = () => {
   
   
 
+  // const fetchMintedData = useCallback(async () => {
+  //   try {
+  //     const providerInstance = new BrowserProvider(window.ethereum);
+  //     const contract = new Contract(contractAddress, HealthcareDataNFT.abi, providerInstance);
+  //     const supply = await contract.totalSupply();
+  
+  //     const minted = [];
+  //     for (let i = 1; i <= supply; i++) {
+  //       const metadata = await contract.getMetadata(i);
+  //       minted.push({ tokenId: i, metadata });
+  //     }
+  //     setMintedData(minted);
+  //     calculateRecordsStats();
+  //   } catch (error) {
+  //     console.error('Error fetching minted data:', error.message);
+  //   }
+  // }, [contractAddress, calculateRecordsStats]); // Dependencies
   const fetchMintedData = useCallback(async () => {
     try {
+      console.log("Fetching minted data...");
       const providerInstance = new BrowserProvider(window.ethereum);
       const contract = new Contract(contractAddress, HealthcareDataNFT.abi, providerInstance);
+  
+      // Check if contract is connected properly
+      if (!contract) {
+        throw new Error("Contract instance is not available.");
+      }
+  
       const supply = await contract.totalSupply();
+      console.log("Total supply:", supply);
   
       const minted = [];
       for (let i = 1; i <= supply; i++) {
         const metadata = await contract.getMetadata(i);
         minted.push({ tokenId: i, metadata });
       }
+  
       setMintedData(minted);
       calculateRecordsStats();
     } catch (error) {
-      console.error('Error fetching minted data:', error.message);
+      console.error("Error fetching minted data:", error.message);
+      setStatus("Failed to fetch minted data. Check the contract implementation.");
     }
-  }, [contractAddress, calculateRecordsStats]); // Dependencies
+  }, [contractAddress, calculateRecordsStats]);
+
+  // const fetchMintedData = useCallback(async () => {
+  //   try {
+  //     console.log("Fetching minted data...");
+  //     const providerInstance = new BrowserProvider(window.ethereum);
+  //     const contract = new Contract(contractAddress, HealthcareDataNFT.abi, providerInstance);
+  
+  //     // Fetch total supply
+  //     const supply = await contract.totalSupply();
+  //     console.log("Total supply:", supply.toString());
+  
+  //     const minted = [];
+  //     for (let i = 1; i <= supply; i++) {
+  //       const metadata = await contract.getMetadata(i);
+  //       minted.push({ tokenId: i, metadata });
+  //     }
+  
+  //     // Update state only if the fetched data is different
+  //     setMintedData((prevData) => {
+  //       if (JSON.stringify(prevData) !== JSON.stringify(minted)) {
+  //         return minted;
+  //       }
+  //       return prevData; // Prevent unnecessary re-renders
+  //     });
+  //   } catch (error) {
+  //     console.error("Error fetching minted data:", error.message);
+  //     setStatus("Failed to fetch minted data. Check contract deployment and ABI.");
+  //   }
+  // }, [contractAddress, calculateRecordsStats]);
+  
+  
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -158,34 +249,66 @@ const App = () => {
   };
 
   const handleMintNFT = async () => {
-    if (!tokenId || !data || !dataType || !date || !provider || !image) {
+    if (!tokenId || !data || !dataType || !date || !provider || !image || !name || !age || !gender) {
       alert('Please fill out all fields and upload an image.');
       return;
     }
-
+  
+    // Generate a random decryption key
+    const generateRandomKey = () => {
+      const array = new Uint8Array(16); // 16 bytes = 128 bits
+      window.crypto.getRandomValues(array);
+      return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    };
+  
+    const decryptionKey = generateRandomKey();
+    console.log("Generated Decryption Key:", decryptionKey);
+    setDecryptionKey(decryptionKey); // Store it in the state if needed
+  
     setStatus('Encrypting data...');
-    const encryptionKey = 'encryption-key';
-    const encryptedData = CryptoJS.AES.encrypt(data, encryptionKey).toString();
-
-    setStatus('Uploading data to IPFS...');
-    const ipfsUrl = await uploadToIPFS({ healthcareData: encryptedData });
-
-    setStatus('Minting NFT...');
+  
+    // Encrypt healthcare data
+    const patientDetails = { name, age, gender };
+    const encryptedData = CryptoJS.AES.encrypt(
+      JSON.stringify({ healthcareData: data, patientDetails }),
+      decryptionKey
+    ).toString();
+    console.log("Encrypted Healthcare Data:", encryptedData);
+  
+    // Upload encrypted data to IPFS
+    setStatus('Uploading encrypted data to IPFS...');
     try {
+      const ipfsUrl = await uploadToIPFS({ encryptedData });
+      console.log("Encrypted Data IPFS URL:", ipfsUrl);
+  
+      // Mint the NFT
+      setStatus('Minting NFT...');
       const providerInstance = new BrowserProvider(window.ethereum);
       const signer = await providerInstance.getSigner();
       const contract = new Contract(contractAddress, HealthcareDataNFT.abi, signer);
-
-      const tx = await contract.mintNFT(parseInt(tokenId), dataType, date, provider, ipfsUrl, image);
+  
+      const tx = await contract.mintNFT(
+        parseInt(tokenId),
+        dataType,
+        date,
+        provider,
+        ipfsUrl,
+        image
+      );
       await tx.wait();
-
-      setStatus(`NFT minted successfully! IPFS URL: ${ipfsUrl}`);
+  
+      setStatus(`NFT minted successfully! Token ID: ${tokenId}, IPFS URL: ${ipfsUrl}`);
+      alert(`Please save this decryption key securely: ${decryptionKey}`);
       fetchMintedData();
     } catch (error) {
-      console.error('Minting error:', error.message);
+      console.error('Error during NFT minting:', error.message);
       setStatus('Failed to mint NFT.');
     }
   };
+  
+  
+  
+  
 
   const handleGrantAccess = async () => {
     if (!accessTokenId || !userAddress || !decryptionKey) {
@@ -244,40 +367,71 @@ const App = () => {
   };
 
   const viewHealthcareDataWithAccess = async (tokenId = viewTokenId) => {
-    // Ensure required inputs are provided
     if (!tokenId || !userPrivateKey) {
       setError("Both Token ID and Private Key are required to view healthcare data.");
       return;
     }
   
-    setLoading(true); // Start loading
-    setError(""); // Reset errors
+    setLoading(true);
+    setError("");
     setStatus("Fetching healthcare data...");
   
     try {
       const providerInstance = new BrowserProvider(window.ethereum);
       const contract = new Contract(contractAddress, HealthcareDataNFT.abi, providerInstance);
   
-      // Fetch encrypted key and decrypt it using private key
+      console.log("Fetching encrypted key from the contract...");
       const encryptedKey = await contract.getEncryptedKey(tokenId, userAddress);
+  
+      if (!encryptedKey) {
+        throw new Error("No encrypted key found for the provided Token ID.");
+      }
+  
+      console.log("Decrypting the access key...");
       const decryptedKey = CryptoJS.AES.decrypt(encryptedKey, userPrivateKey).toString(CryptoJS.enc.Utf8);
   
       if (!decryptedKey) {
-        throw new Error("Failed to decrypt the access key. Please check your private key.");
+        throw new Error("Failed to decrypt the access key. Check your private key.");
+      }
+      console.log("Decrypted Access Key:", decryptedKey);
+  
+      console.log("Fetching metadata for Token ID:", tokenId);
+      const metadata = await contract.getMetadata(tokenId);
+  
+      if (!metadata || metadata.length < 4) {
+        throw new Error("Invalid metadata retrieved from the contract.");
       }
   
-      // Fetch metadata and healthcare data
-      const metadata = await contract.getMetadata(tokenId);
       const [dataType, date, provider, ipfsHash, imageUrl] = metadata;
   
-      const encryptedData = await fetchFromIPFS(ipfsHash);
-      const healthcareData = decryptData(JSON.parse(encryptedData).healthcareData, decryptedKey);
+      console.log("Fetching healthcare data from IPFS...");
+      const ipfsResponse = await fetchFromIPFS(ipfsHash);
   
-      if (!healthcareData) {
-        throw new Error("Failed to decrypt healthcare data.");
+      if (!ipfsResponse) {
+        throw new Error("Failed to fetch data from IPFS. Check the IPFS hash.");
       }
   
-      // Update selected record for detail view
+      const ipfsData = JSON.parse(ipfsResponse);
+      const encryptedData = ipfsData.encryptedData || ipfsData.healthcareData;
+  
+      if (!encryptedData) {
+        throw new Error("No encrypted data found in IPFS response.");
+      }
+      console.log("Encrypted Healthcare Data:", encryptedData);
+  
+      console.log("Decrypting healthcare data...");
+      const decryptedData = CryptoJS.AES.decrypt(encryptedData, decryptedKey).toString(CryptoJS.enc.Utf8);
+  
+      if (!decryptedData) {
+        throw new Error("Failed to decrypt healthcare data. Ensure the decryption key is correct.");
+      }
+      console.log("Decrypted Healthcare Data:", decryptedData);
+  
+      const parsedData = JSON.parse(decryptedData);
+      const { healthcareData, patientDetails = {} } = parsedData;
+  
+      console.log("Parsed Healthcare Data:", parsedData);
+  
       setSelectedRecord({
         tokenId,
         dataType,
@@ -285,190 +439,223 @@ const App = () => {
         provider,
         imageUrl,
         healthcareData,
+        patientDetails,
         timestamp: new Date(date).toLocaleString(),
       });
   
-      setViewMode("detail"); // Switch to detail view
+      setViewMode("detail"); // Ensure the view mode is set to display the detailed record
       setStatus("Healthcare Data Retrieved Successfully!");
     } catch (error) {
       console.error("Error viewing healthcare data:", error.message);
       setError(error.message || "Failed to retrieve healthcare data.");
       setStatus("Error: " + error.message);
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
   
   
+  
+  
+  
+  
+  
   const RecordsList = ({ records }) => {
-    const filteredRecords = records.filter(record => {
-      const matchesSearch = record.metadata[0].toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          record.metadata[2].toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredRecords = records.filter((record) => {
+      const matchesSearch =
+        record.metadata[0]?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.metadata[2]?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesFilter = filterType === 'all' || record.metadata[0] === filterType;
       return matchesSearch && matchesFilter;
     });
-
+  
+    if (filteredRecords.length === 0) {
+      return <p className="text-gray-500 text-center">No records match your search or filter criteria.</p>;
+    }
+  
     return (
-      <div className="space-y-4">
-        <div className="flex gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Search records..."
-            className="flex-1 p-2 border rounded-lg"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <select
-            className="p-2 border rounded-lg"
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-          >
-            <option value="all">All Types</option>
-            {Array.from(new Set(records.map(r => r.metadata[0]))).map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-        </div>
-        
+      <div className="records-container">
         {filteredRecords.map((record) => (
           <div
             key={record.tokenId}
-            className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+            className="record-card"
             onClick={() => viewHealthcareDataWithAccess(record.tokenId)}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-100 rounded-full">
-                  <FileCheck className="h-5 w-5 text-indigo-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-800">
-                    {record.metadata[0]} - Token ID: {record.tokenId}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Provider: {record.metadata[2]}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">
-                  {new Date(record.metadata[1]).toLocaleDateString()}
-                </p>
-                <button
-                  className="text-indigo-600 text-sm hover:text-indigo-800"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    viewHealthcareDataWithAccess(record.tokenId);
-                  }}
-                >
-                  View Details
-                </button>
-              </div>
-            </div>
+            <h4>{record.metadata[0] || "Unknown Type"}</h4>
+            <p>
+              <strong>Token ID:</strong> {record.tokenId}
+            </p>
+            <p>
+              <strong>Provider:</strong> {record.metadata[2] || "Unknown"}
+            </p>
+            <p>
+              <strong>Date:</strong>{" "}
+              {new Date(record.metadata[1]).toLocaleDateString() || "Invalid Date"}
+            </p>
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent event propagation
+                viewHealthcareDataWithAccess(record.tokenId);
+              }}
+            >
+              View Details
+            </button>
           </div>
         ))}
       </div>
     );
   };
+  
+  
+  
+  
 
   const RecordDetail = ({ record, onBack }) => {
-    if (!record) return null;
+    if (!record) {
+      return (
+        <div className="text-gray-500 text-center">
+          <p>No record selected. Please select a record to view details.</p>
+        </div>
+      );
+    }
+  
+    const { patientDetails = {}, healthcareData, tokenId, dataType, provider, timestamp, imageUrl } = record;
   
     return (
       <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Healthcare Record Details</h2>
-          <button
-            onClick={onBack}
-            className="text-gray-600 hover:text-gray-800"
-          >
+          <button onClick={onBack} className="text-gray-600 hover:text-gray-800">
             Back to List
           </button>
         </div>
   
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-semibold text-gray-700 mb-2">Basic Information</h3>
-              <dl className="space-y-2">
-                <div className="flex justify-between">
-                  <dt className="text-gray-600">Token ID:</dt>
-                  <dd className="font-medium">{record.tokenId}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-600">Type:</dt>
-                  <dd className="font-medium">{record.dataType}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-600">Provider:</dt>
-                  <dd className="font-medium">{record.provider}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-600">Date:</dt>
-                  <dd className="font-medium">{record.timestamp}</dd>
-                </div>
-              </dl>
-            </div>
-  
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-semibold text-gray-700 mb-2">Healthcare Data</h3>
-              <pre className="whitespace-pre-wrap text-sm bg-white p-3 rounded border">
-                {record.healthcareData}
-              </pre>
-            </div>
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-semibold text-gray-700 mb-2">Patient Details</h3>
+            <dl className="space-y-2">
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Name:</dt>
+                <dd className="font-medium">{patientDetails.name || "N/A"}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Age:</dt>
+                <dd className="font-medium">{patientDetails.age || "N/A"}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Gender:</dt>
+                <dd className="font-medium">{patientDetails.gender || "N/A"}</dd>
+              </div>
+            </dl>
           </div>
   
-          <div className="space-y-4">
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-semibold text-gray-700 mb-2">Basic Information</h3>
+            <dl className="space-y-2">
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Token ID:</dt>
+                <dd className="font-medium">{tokenId}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Type:</dt>
+                <dd className="font-medium">{dataType}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Provider:</dt>
+                <dd className="font-medium">{provider}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Date:</dt>
+                <dd className="font-medium">{timestamp}</dd>
+              </div>
+            </dl>
+          </div>
+  
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-semibold text-gray-700 mb-2">Healthcare Data</h3>
+            <pre className="whitespace-pre-wrap text-sm bg-white p-3 rounded border">
+              {healthcareData || "No data available."}
+            </pre>
+          </div>
+  
+          {imageUrl && (
             <div className="p-4 bg-gray-50 rounded-lg">
               <h3 className="font-semibold text-gray-700 mb-2">Medical Image</h3>
               <div className="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg overflow-hidden">
-                <img
-                  src={record.imageUrl}
-                  alt="Medical scan"
-                  className="object-contain w-full h-full"
-                />
+                <img src={imageUrl} alt="Medical scan" className="object-contain w-full h-full" />
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     );
   };
+  
+  
 
   
   
 
   const fetchFromIPFS = async (ipfsHash) => {
     try {
+      if (!ipfsHash) {
+        throw new Error("IPFS hash is required but not provided.");
+      }
+  
       const cleanHash = ipfsHash.startsWith('https://') ? ipfsHash.split('/ipfs/')[1] : ipfsHash;
       const url = `https://gateway.pinata.cloud/ipfs/${cleanHash}`;
   
+      console.log("Fetching from IPFS URL:", url);
+  
       const response = await fetch(url);
+  
       if (!response.ok) {
         throw new Error(`Failed to fetch from IPFS. Status: ${response.status}`);
       }
   
-      return await response.text();
+      const data = await response.text();
+      console.log("Raw IPFS Data:", data);
+  
+      // Validate data format
+      const parsedData = JSON.parse(data);
+      if (!parsedData || !parsedData.encryptedData) {
+        throw new Error("Invalid or incomplete data retrieved from IPFS.");
+      }
+  
+      return data;
     } catch (error) {
-      console.error('Error fetching from IPFS:', error.message);
+      console.error("Error fetching from IPFS:", error.message);
       throw error;
     }
   };
   
+  
+  
+  
+  
 
   const decryptData = (encryptedData, decryptionKey) => {
     try {
+      console.log("Attempting to decrypt data...");
+      console.log("Decryption Key:", decryptionKey);
+      console.log("Encrypted Data:", encryptedData);
+  
       const bytes = CryptoJS.AES.decrypt(encryptedData, decryptionKey);
       const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+  
       if (!decryptedData) {
         throw new Error('Decryption resulted in empty data');
       }
+  
+      console.log("Decrypted Data:", decryptedData); // Debug log
       return decryptedData;
     } catch (error) {
-      console.error('Error decrypting data:', error.message);
+      console.error("Error decrypting data:", error.message);
       return null;
     }
   };
+  
+  
 
   useEffect(() => {
     fetchMintedData();
@@ -505,16 +692,16 @@ const App = () => {
   const handleTabChange = (tab) => {
     setActiveTab(tab);
   
-    // Reset Doctor View state on tab change
     if (tab === "doctor") {
-      setSelectedRecord(null); // Clear selected record
-      setViewMode("list"); // Reset view mode
-      setViewTokenId(""); // Clear token ID
-      setUserPrivateKey(""); // Clear private key
-      setError(""); // Reset error
-      setStatus(""); // Clear status message
+      setSelectedRecord(null);
+      setViewMode("list");
+      setViewTokenId("");
+      setUserPrivateKey("");
+      setError("");
+      setStatus("");
     }
   };
+  
 
   
   
@@ -526,83 +713,74 @@ const App = () => {
       </header>
 
       <div className="tab-navigation">
-        <button
-          className={`tab-button ${activeTab === 'patient' ? 'active' : ''}`}
-          onClick={() => setActiveTab('patient')}
-        >
-          Patient Data Entry
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'access' ? 'active' : ''}`}
-          onClick={() => setActiveTab('access')}
-        >
-          Access Control
-        </button>
-        <button
-  className={`tab-button ${activeTab === 'doctor' ? 'active' : ''}`}
-  onClick={() => handleTabChange('doctor')}
->
-  Doctor View
-</button>
+  <button
+    className={`tab-button ${activeTab === 'patient' ? 'active' : ''}`}
+    onClick={() => setActiveTab('patient')}
+  >
+    Patient Data Entry
+  </button>
+  <button
+    className={`tab-button ${activeTab === 'access' ? 'active' : ''}`}
+    onClick={() => setActiveTab('access')}
+  >
+    Access Control
+  </button>
+  <button
+    className={`tab-button ${activeTab === 'doctor' ? 'active' : ''}`}
+    onClick={() => handleTabChange('doctor')}
+  >
+    Doctor View
+  </button>
+  <button
+    className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
+    onClick={() => setActiveTab('overview')}
+  >
+    Records Overview
+  </button>
+  <button
+    className={`tab-button ${activeTab === 'privacy' ? 'active' : ''}`}
+    onClick={() => setActiveTab('privacy')}
+  >
+    Privacy Laws
+  </button>
+  <button
+    className={`tab-button ${activeTab === 'references' ? 'active' : ''}`}
+    onClick={() => setActiveTab('references')}
+  >
+    Medical References
+  </button>
+  <button
+    className={`tab-button ${activeTab === 'insights' ? 'active' : ''}`}
+    onClick={() => setActiveTab('insights')}
+  >
+    Data Insights
+  </button>
+</div>
 
-        <button
-          className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
-        >
-          Records Overview
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'privacy' ? 'active' : ''}`}
-          onClick={() => setActiveTab('privacy')}
-        >
-          Privacy Laws
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'references' ? 'active' : ''}`}
-          onClick={() => setActiveTab('references')}
-        >
-          Medical References
-        </button>
-      </div>
 
       <main>
-        {activeTab === 'patient' && (
-          <section className="card">
-            <h2>Patient Data Entry</h2>
-            <div className="form-group">
-              <input
-                type="text"
-                placeholder="Token ID"
-                onChange={(e) => setTokenId(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="Data Type (e.g., X-ray)"
-                onChange={(e) => setDataType(e.target.value)}
-              />
-              <input
-                type="date"
-                onChange={(e) => setDate(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="Provider (e.g., XYZ Hospital)"
-                onChange={(e) => setProvider(e.target.value)}
-              />
-              <textarea
-                placeholder="Enter healthcare data"
-                onChange={(e) => setData(e.target.value)}
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-              />
-              <button className="primary-button" onClick={handleMintNFT}>
-                Mint Healthcare NFT
-              </button>
-            </div>
-          </section>
+      {activeTab === 'patient' && (
+          <PatientDataEntry
+          tokenId={tokenId}
+          setTokenId={setTokenId}
+          dataType={dataType}
+          setDataType={setDataType}
+          date={date}
+          setDate={setDate}
+          provider={provider}
+          setProvider={setProvider}
+          data={data}
+          setData={setData}
+          name={name}
+          setName={setName}
+          age={age}
+          setAge={setAge}
+          gender={gender}
+          setGender={setGender}
+          handleImageUpload={handleImageUpload}
+          handleMintNFT={handleMintNFT}
+        />
+        
         )}
 
         {activeTab === 'access' && (
@@ -636,139 +814,120 @@ const App = () => {
           </section>
         )}
 
-{activeTab === 'doctor' && (
+{activeTab === "doctor" && (
   <section className="space-y-8">
-  {/* Input Section */}
-  <div className="bg-white rounded-lg shadow-lg p-8">
-    <h2 className="text-2xl font-semibold text-purple-600 mb-6">Doctor View</h2>
-
-    {/* Error Message */}
-    {error && (
-      <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg flex items-center gap-2">
-        <AlertCircle className="h-6 w-6" />
-        <span>{error}</span>
-      </div>
-    )}
-
-    {/* Input Fields */}
-    <div className="space-y-6">
-    <div>
-  <label className="block text-gray-700 font-medium mb-2">Token ID</label>
-  <input
-    type="text"
-    placeholder="Enter Token ID"
-    className="w-full p-4 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
-    value={viewTokenId} // Bind to state
-    onChange={(e) => setViewTokenId(e.target.value)}
-  />
-</div>
-
-<div>
-  <label className="block text-gray-700 font-medium mb-2">Private Key</label>
-  <input
-    type="password"
-    placeholder="Enter User Private Key"
-    className="w-full p-4 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
-    value={userPrivateKey} // Bind to state
-    onChange={(e) => setUserPrivateKey(e.target.value)}
-  />
-</div>
-    </div>
-
-    {/* Action Button */}
-    <div className="mt-6">
-  <button
-    className={`w-full flex items-center justify-center gap-2 px-6 py-3 text-lg font-semibold rounded-lg transition-colors ${
-      loading || !viewTokenId || !userPrivateKey
-        ? "bg-gray-400 text-white cursor-not-allowed"
-        : "bg-purple-600 text-white hover:bg-purple-700"
-    }`}
-    onClick={() => viewHealthcareDataWithAccess(viewTokenId)}
-    disabled={loading || !viewTokenId || !userPrivateKey}
-  >
-    <Eye className="h-6 w-6" />
-    {loading ? "Loading..." : "View Healthcare Data"}
-  </button>
-</div>
-
-  </div>
-
-  {/* Conditional Rendering for Details or List View */}
-  {viewMode === "detail" && selectedRecord ? (
-    <RecordDetail
-      record={selectedRecord}
-      onBack={() => {
-        setViewMode("list"); // Reset view mode
-        setSelectedRecord(null); // Clear the selected record
-      }}
-    />
-  ) : (
+    {/* Input Section */}
     <div className="bg-white rounded-lg shadow-lg p-8">
-      <h3 className="text-xl font-semibold text-purple-600 mb-6">
-        Healthcare Records
-      </h3>
+      <h2 className="text-2xl font-semibold text-purple-600 mb-6">Doctor View</h2>
 
-      {/* Search and Filter Controls */}
-      <div className="flex gap-4 mb-6">
-        <input
-          type="text"
-          placeholder="Search records..."
-          className="flex-1 p-4 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <select
-          className="p-4 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-        >
-          <option value="all">All Types</option>
-          {Array.from(new Set(mintedData.map((r) => r.metadata[0]))).map(
-            (type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            )
-          )}
-        </select>
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg flex items-center gap-2">
+          <AlertCircle className="h-6 w-6" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Input Fields */}
+      <div className="space-y-6">
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Token ID</label>
+          <input
+            type="text"
+            placeholder="Enter Token ID"
+            className="w-full p-4 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+            value={viewTokenId}
+            onChange={(e) => setViewTokenId(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Private Key</label>
+          <input
+            type="password"
+            placeholder="Enter User Private Key"
+            className="w-full p-4 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+            value={userPrivateKey}
+            onChange={(e) => setUserPrivateKey(e.target.value)}
+          />
+        </div>
       </div>
 
-      {/* Records List */}
-      <div className="records-container">
-        {mintedData.map((record) => (
-          <div key={record.tokenId} className="record-card">
-            <h4>
-              {record.metadata[0]} - Token ID: {record.tokenId}
-            </h4>
-            <p>
-              <strong>Provider:</strong> {record.metadata[2] || "Unknown"}
-            </p>
-            <p>
-              <strong>Date:</strong>{" "}
-              {new Date(record.metadata[1]).toLocaleDateString() ||
-                "Invalid Date"}
-            </p>
-            <button
-              onClick={() => viewHealthcareDataWithAccess(record.tokenId)}
-            >
-              View Details
-            </button>
-          </div>
-        ))}
+      {/* Action Button */}
+      <div className="mt-6">
+        <button
+          className={`w-full flex items-center justify-center gap-2 px-6 py-3 text-lg font-semibold rounded-lg transition-colors ${
+            loading || !viewTokenId || !userPrivateKey
+              ? "bg-gray-400 text-white cursor-not-allowed"
+              : "bg-purple-600 text-white hover:bg-purple-700"
+          }`}
+          onClick={() => viewHealthcareDataWithAccess(viewTokenId)}
+          disabled={loading || !viewTokenId || !userPrivateKey}
+        >
+          <Eye className="h-6 w-6" />
+          {loading ? "Loading..." : "View Healthcare Data"}
+        </button>
       </div>
     </div>
-  )}
-</section>
 
+    {/* Records Section */}
+    <div className="bg-white rounded-lg shadow-lg p-8">
+      {viewMode === "list" ? (
+        <>
+          <h3 className="text-xl font-semibold text-purple-600 mb-6">
+            Healthcare Records
+          </h3>
+
+          {/* Search and Filter Controls */}
+          <div className="flex gap-4 mb-6">
+            <input
+              type="text"
+              placeholder="Search records..."
+              className="flex-1 p-4 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <select
+              className="p-4 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+            >
+              <option value="all">All Types</option>
+              {Array.from(new Set(mintedData.map((r) => r.metadata[0]))).map(
+                (type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                )
+              )}
+            </select>
+          </div>
+
+          {/* Records List */}
+          <RecordsList records={mintedData} />
+        </>
+      ) : (
+        <RecordDetail
+          record={selectedRecord}
+          onBack={() => {
+            setViewMode("list");
+            setSelectedRecord(null);
+          }}
+        />
+      )}
+    </div>
+  </section>
 )}
 
+
+
+{activeTab === 'insights' && <DataInsights mintedData={mintedData} />}
 
 
 
 {activeTab === 'overview' && (
   <RecordsOverview recordsStats={recordsStats} mintedData={mintedData} />
 )}
-
 
 
 
@@ -790,40 +949,10 @@ const App = () => {
           </section>
         )}
 
-        {activeTab === 'references' && (
-          <section className="card">
-            <h2>Medical Reference Ranges</h2>
-            <div className="medical-references">
-              <div className="reference-section">
-                <h3>Blood Work Reference Ranges</h3>
-                {medicalReferences.bloodWork.map((test, index) => (
-                  <div key={index} className="reference-item">
-                    <h4>{test.test}</h4>
-                    <p>{test.range}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="reference-section">
-                <h3>X-Ray Reference Ranges</h3>
-                {medicalReferences.xray.map((test, index) => (
-                  <div key={index} className="reference-item">
-                    <h4>{test.test}</h4>
-                    <p>{test.range}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="reference-section">
-                <h3>MRI Reference Ranges</h3>
-                {medicalReferences.mri.map((test, index) => (
-                  <div key={index} className="reference-item">
-                    <h4>{test.test}</h4>
-                    <p>{test.range}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+{activeTab === 'references' && (
+  <MedicalReferences references={medicalReferences} />
+)}
+
 
         {/* <section className="card">
           <h2>Minted Data</h2>
