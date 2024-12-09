@@ -147,8 +147,8 @@ The **Healthcare Data NFT Vault** leverages blockchain technology to securely to
 
 1. **Clone the Repository**:
 ```bash
-git clone https://github.com/your-repo/healthcare-data-nft-vault.git
-cd healthcare-data-nft-vault
+git clone https://github.com/manoj7032/HealthcareDataNFTVault.git
+cd HealthcareDataNFTVault
 ```
 
 2. **Install Dependencies**:
@@ -271,4 +271,4 @@ npm start
 ---
 
 ## Live Demo
-*(Insert live demo video link here)*
+*https://drive.google.com/drive/folders/1qEgVm3HQ1ooX0yW34SoKLwCjyJYmMu2j?usp=sharing*
