@@ -1,5 +1,6 @@
 # Healthcare Data NFT Vault
 
+## Team Name: Crypto Zombies
 ## Team Members:
 | Name                          | CWID       | Email                             |
 |-------------------------------|------------|-----------------------------------|
