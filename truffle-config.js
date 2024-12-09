@@ -10,24 +10,26 @@ module.exports = {
     },
     holesky: {
       provider: () =>
-        new HDWalletProvider(
-          process.env.MNEMONIC, // Your wallet mnemonic phrase
-          `https://holesky.infura.io/v3/${process.env.INFURA_PROJECT_ID}` // Infura URL for Holesky
-        ),
+        new HDWalletProvider({
+          mnemonic: process.env.MNEMONIC,  // Wallet mnemonic phrase
+          providerOrUrl: process.env.RPC_URL, // Alchemy RPC URL for Holesky
+          pollingInterval: 15000,          // Polling interval for block updates
+        }),
       network_id: 17000,        // Holesky Testnet chain ID
-      gas: 6721975,             // Gas limit
+      gas: 8000000,             // Gas limit
       gasPrice: 1000000000,     // 1 Gwei (in wei)
       confirmations: 2,         // Wait for 2 confirmations
-      timeoutBlocks: 500,       // Wait up to 200 blocks for confirmation
+      timeoutBlocks: 500,       // Wait up to 500 blocks for confirmation
       skipDryRun: true          // Skip dry run before migrations
     },
   },
   mocha: {
     // Custom mocha options
+    timeout: 100000,            // Increase timeout for Holesky migrations
   },
   compilers: {
     solc: {
-      version: "0.4.25",        // Solidity version
+      version: "0.4.25",        // Solidity compiler version
     }
   }
 };
